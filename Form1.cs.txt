@@ -1,0 +1,106 @@
+﻿using System;
+using System.Windows.Forms;
+using MySql.Data.MySqlClient;
+
+namespace WindowsFormsApp1
+{
+    public partial class Form1 : Form
+    {
+        // Ajusta la cadena de conexión con el nombre correcto de la base de datos
+        private string connectionString = "Server=LAPTOP-TCB660I2\\SQLEXPRESS06;Database=EXA3;Integrated Security=True;";
+
+        public Form1()
+        {
+            InitializeComponent();
+
+            // Manejar el evento Load del formulario
+            this.Load += Form1_Load;
+
+            // Asociar el evento Click del botón "Enviar Encuesta"
+            btnEnviarEncuesta.Click += btnEnviarEncuesta_Click;
+        }
+
+        // Evento Load del formulario
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // Llena el ComboBox con opciones de partidos políticos
+            cmbPartidoPolitico.Items.Add("PLN");
+            cmbPartidoPolitico.Items.Add("PUSC");
+            cmbPartidoPolitico.Items.Add("PAC");
+
+            // Puedes seleccionar el primer partido por defecto si lo deseas
+            cmbPartidoPolitico.SelectedIndex = 0;
+        }
+
+        // Evento Click del botón "Enviar Encuesta"
+        private void btnEnviarEncuesta_Click(object sender, EventArgs e)
+        {
+            // Validar campos obligatorios
+            if (string.IsNullOrWhiteSpace(txtNombreParticipante.Text) || string.IsNullOrWhiteSpace(txtCorreo.Text))
+            {
+                MessageBox.Show("Por favor, complete todos los campos obligatorios.");
+                return;
+            }
+
+            // Validar edad
+            int edad = (int)numericUpDownEdad.Value;
+            if (edad < 18 || edad > 50)
+            {
+                MessageBox.Show("La edad debe estar entre 18 y 50 años.");
+                return;
+            }
+
+            // Validar correo electrónico
+            if (!IsValidEmail(txtCorreo.Text))
+            {
+                MessageBox.Show("Ingrese un correo electrónico válido.");
+                return;
+            }
+
+            // Insertar la encuesta en la base de datos
+            InsertarEncuesta();
+
+            // Mostrar mensaje de éxito
+            MessageBox.Show("Encuesta enviada con éxito.");
+        }
+
+        // Función para validar el formato del correo electrónico
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // Método para insertar la encuesta en la base de datos
+        private void InsertarEncuesta()
+        {
+            using (MySqlConnection connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+
+                // Consulta para insertar la encuesta en la tabla
+                string query = "INSERT INTO Encuestas (NombreParticipante, Edad, CorreoElectronico, PartidoPolitico) " +
+                               "VALUES (@NombreParticipante, @Edad, @CorreoElectronico, @PartidoPolitico)";
+
+                using (MySqlCommand command = new MySqlCommand(query, connection))
+                {
+                    // Parámetros para la consulta
+                    command.Parameters.AddWithValue("@NombreParticipante", txtNombreParticipante.Text);
+                    command.Parameters.AddWithValue("@Edad", (int)numericUpDownEdad.Value);
+                    command.Parameters.AddWithValue("@CorreoElectronico", txtCorreo.Text);
+                    command.Parameters.AddWithValue("@PartidoPolitico", cmbPartidoPolitico.SelectedItem.ToString());
+
+                    // Ejecutar la consulta
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+}
